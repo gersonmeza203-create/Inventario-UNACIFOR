@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a2540">
+<title>UNACIFOR · Control de Inventario</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{--ink:#0a2540;--ink2:#1a3a5c;--sky:#0e7490;--sky-light:#e0f2fe;--gold:#d97706;--gold-light:#fef3c7;--green:#059669;--green-light:#d1fae5;--red:#dc2626;--red-light:#fee2e2;--grey:#64748b;--border:#cbd5e1;--bg:#f0f4f8;--card:#fff;--radius:14px;--shadow:0 2px 16px rgba(10,37,64,.10);--shadow-lg:0 8px 32px rgba(10,37,64,.18);--font-head:'Syne',sans-serif;--font-body:'DM Sans',sans-serif;}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;font-family:var(--font-body);background:var(--bg);color:var(--ink);overflow-x:hidden;}
+  .app-header{background:var(--ink);color:#fff;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,.25);}
+  .header-top{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08);}
+  .logo-area{display:flex;align-items:center;gap:10px;}
+  .logo-circle{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--gold),#f59e0b);display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-weight:800;font-size:14px;color:var(--ink);flex-shrink:0;}
+  .logo-text{font-family:var(--font-head);font-size:15px;font-weight:700;line-height:1.2;}
+  .logo-sub{font-size:10px;opacity:.6;}
+  .header-actions{display:flex;gap:8px;}
+  .btn-icon{background:rgba(255,255,255,.10);border:none;color:#fff;width:36px;height:36px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:background .2s;}
+  .btn-icon:hover{background:rgba(255,255,255,.2);}
+  .nav-tabs{display:flex;overflow-x:auto;gap:2px;padding:8px 12px;scrollbar-width:none;background:var(--ink2);}
+  .nav-tabs::-webkit-scrollbar{display:none;}
+  .nav-tab{flex-shrink:0;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;color:rgba(255,255,255,.6);border:none;background:transparent;transition:all .2s;white-space:nowrap;font-family:var(--font-body);}
+  .nav-tab.active{background:var(--sky);color:#fff;font-weight:600;}
+  .nav-tab:hover:not(.active){color:#fff;background:rgba(255,255,255,.08);}
+  .main{padding:16px;max-width:900px;margin:0 auto;}
+  .section{display:none;}.section.active{display:block;}
+  .stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;}
+  .stat-card{background:var(--card);border-radius:var(--radius);padding:12px 10px;box-shadow:var(--shadow);text-align:center;border-top:3px solid var(--sky);}
+  .stat-card.gold{border-color:var(--gold);}.stat-card.green{border-color:var(--green);}.stat-card.red{border-color:var(--red);}
+  .stat-num{font-family:var(--font-head);font-size:22px;font-weight:800;color:var(--ink);}
+  .stat-lbl{font-size:10px;color:var(--grey);margin-top:2px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;}
+  .alert-banner{background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;display:none;}
+  .alert-banner.show{display:block;}
+  .alert-banner-title{font-family:var(--font-head);font-size:13px;font-weight:800;margin-bottom:6px;}
+  .alert-item{font-size:12px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.15);}
+  .alert-item:last-child{border-bottom:none;}
+  .card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden;}
+  .card-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);cursor:pointer;}
+  .card-header-left{display:flex;align-items:center;gap:10px;}
+  .card-badge{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .badge-active{background:var(--green);box-shadow:0 0 0 3px var(--green-light);}
+  .badge-overdue{background:var(--red);box-shadow:0 0 0 3px var(--red-light);}
+  .badge-pending{background:var(--gold);box-shadow:0 0 0 3px var(--gold-light);}
+  .card-title{font-family:var(--font-head);font-size:14px;font-weight:700;}
+  .card-sub{font-size:11px;color:var(--grey);margin-top:1px;}
+  .card-body{padding:14px 16px;display:none;}.card-body.open{display:block;}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .info-label{font-size:10px;color:var(--grey);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:2px;}
+  .info-value{font-size:13px;font-weight:500;}
+  .tag{display:inline-block;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.3px;}
+  .tag-sky{background:var(--sky-light);color:var(--sky);}.tag-gold{background:var(--gold-light);color:var(--gold);}
+  .tag-green{background:var(--green-light);color:var(--green);}.tag-red{background:var(--red-light);color:var(--red);}
+  .tag-orange{background:#ffedd5;color:#ea580c;}
+  .loc-tag{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:8px;font-size:11px;font-weight:600;background:var(--ink);color:#fff;}
+  .sig-wrapper{margin-top:12px;border:2px dashed var(--border);border-radius:10px;background:#fafbfc;overflow:hidden;}
+  .sig-canvas{width:100%;height:140px;display:block;touch-action:none;cursor:crosshair;}
+  .sig-actions{display:flex;gap:8px;padding:8px 12px;border-top:1px solid var(--border);background:#f8fafc;}
+  .sig-label{font-size:11px;color:var(--grey);padding:6px 12px;}
+  .form-section{margin-bottom:20px;}
+  .form-title{font-family:var(--font-head);font-size:13px;font-weight:700;color:var(--sky);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--sky-light);}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+  .form-row.full{grid-template-columns:1fr;}
+  .form-group{display:flex;flex-direction:column;gap:4px;}
+  .form-label{font-size:11px;font-weight:600;color:var(--grey);text-transform:uppercase;letter-spacing:.4px;}
+  .form-control{padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--font-body);font-size:13px;background:#fff;color:var(--ink);transition:border-color .2s,box-shadow .2s;outline:none;width:100%;-webkit-appearance:none;appearance:none;}
+  .form-control:focus{border-color:var(--sky);box-shadow:0 0 0 3px rgba(14,116,144,.12);}
+  select.form-control{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2364748b'%3E%3Cpath d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:16px;padding-right:32px;}
+  .item-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;background:#f8fafc;border-radius:8px;padding:8px 10px;border:1px solid var(--border);}
+  .stock-info{font-size:11px;font-weight:600;flex-shrink:0;min-width:60px;}
+  .stock-ok{color:var(--green);}.stock-low{color:#ea580c;}.stock-zero{color:var(--red);}
+  .btn{padding:11px 20px;border-radius:10px;border:none;cursor:pointer;font-family:var(--font-body);font-size:13px;font-weight:600;transition:all .2s;display:inline-flex;align-items:center;gap:6px;}
+  .btn-primary{background:var(--sky);color:#fff;}.btn-primary:hover{background:#0e6080;box-shadow:0 4px 12px rgba(14,116,144,.35);}
+  .btn-success{background:var(--green);color:#fff;}.btn-success:hover{background:#047857;}
+  .btn-gold{background:var(--gold);color:#fff;}
+  .btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--grey);}
+  .btn-outline:hover{border-color:var(--sky);color:var(--sky);}
+  .btn-sm{padding:7px 12px;font-size:12px;border-radius:8px;}
+  .btn-full{width:100%;justify-content:center;}
+  .search-bar{display:flex;gap:8px;margin-bottom:14px;}
+  .search-input{flex:1;padding:10px 14px 10px 36px;border:1.5px solid var(--border);border-radius:10px;font-family:var(--font-body);font-size:13px;outline:none;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2364748b'%3E%3Cpath fill-rule='evenodd' d='M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z' clip-rule='evenodd'/%3E%3C/svg%3E") no-repeat 10px center/16px;}
+  .search-input:focus{border-color:var(--sky);}
+  .filter-chips{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;scrollbar-width:none;padding-bottom:2px;}
+  .filter-chips::-webkit-scrollbar{display:none;}
+  .chip{flex-shrink:0;padding:5px 12px;border-radius:99px;font-size:11px;font-weight:600;border:1.5px solid var(--border);background:#fff;cursor:pointer;transition:all .15s;color:var(--grey);}
+  .chip.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .modal-overlay{position:fixed;inset:0;background:rgba(10,37,64,.65);z-index:200;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
+  .modal-overlay.open{display:flex;}
+  .modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:600px;max-height:92vh;overflow-y:auto;padding:20px;padding-bottom:32px;animation:slideUp .3s ease;}
+  @keyframes slideUp{from{transform:translateY(100%);}to{transform:translateY(0);}}
+  .modal-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px;}
+  .modal-title{font-family:var(--font-head);font-size:18px;font-weight:800;margin-bottom:16px;color:var(--ink);}
+  .import-zone{border:2.5px dashed var(--border);border-radius:12px;padding:28px 20px;text-align:center;cursor:pointer;transition:all .2s;background:#fafbfc;}
+  .import-zone:hover,.import-zone.dragover{border-color:var(--sky);background:var(--sky-light);}
+  .import-zone-icon{font-size:36px;margin-bottom:8px;}
+  .import-zone-title{font-family:var(--font-head);font-size:14px;font-weight:700;color:var(--ink);margin-bottom:4px;}
+  .import-zone-sub{font-size:12px;color:var(--grey);}
+  .inv-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .inv-table th{background:var(--ink);color:#fff;padding:8px 12px;text-align:left;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;}
+  .inv-table td{padding:9px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+  .inv-table tr:last-child td{border-bottom:none;}
+  .inv-table tr:hover td{background:#f8fafc;}
+  .stock-bar{height:6px;border-radius:3px;background:#e2e8f0;overflow:hidden;margin-top:4px;width:80px;}
+  .stock-bar-fill{height:100%;border-radius:3px;transition:width .3s;}
+  .stock-bar-fill.ok{background:var(--green);}.stock-bar-fill.low{background:#f97316;}.stock-bar-fill.zero{background:var(--red);}
+  .empty-state{text-align:center;padding:48px 24px;color:var(--grey);}
+  .empty-icon{font-size:48px;margin-bottom:12px;opacity:.5;}
+  .empty-title{font-family:var(--font-head);font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px;}
+  .empty-sub{font-size:13px;}
+  .receipt{background:#fff;border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);margin-bottom:12px;border-left:4px solid var(--sky);}
+  .receipt-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
+  .receipt-id{font-family:var(--font-head);font-size:11px;color:var(--grey);font-weight:700;}
+  .divider{border:none;border-top:1px dashed var(--border);margin:12px 0;}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:500;z-index:999;display:none;box-shadow:var(--shadow-lg);max-width:90vw;text-align:center;}
+  .toast.show{display:block;animation:fadeInUp .3s ease;}
+  @keyframes fadeInUp{from{opacity:0;transform:translateX(-50%) translateY(10px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
+  .section-hero{background:linear-gradient(135deg,var(--ink) 0%,var(--ink2) 100%);color:#fff;border-radius:var(--radius);padding:18px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow-lg);}
+  .section-hero-text h2{font-family:var(--font-head);font-size:18px;font-weight:800;}
+  .section-hero-text p{font-size:12px;opacity:.7;margin-top:2px;}
+  .section-hero-icon{font-size:36px;opacity:.6;}
+  .fab{position:fixed;bottom:24px;right:20px;z-index:150;width:56px;height:56px;border-radius:50%;background:var(--sky);color:#fff;border:none;font-size:24px;cursor:pointer;box-shadow:0 4px 20px rgba(14,116,144,.45);transition:transform .2s,box-shadow .2s;display:flex;align-items:center;justify-content:center;}
+  .fab:hover{transform:scale(1.08);}
+  .preview-wrap{overflow-x:auto;max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;margin:10px 0;}
+  .preview-table{width:100%;border-collapse:collapse;font-size:12px;}
+  .preview-table th{background:#f1f5f9;padding:6px 10px;text-align:left;font-weight:700;font-size:11px;position:sticky;top:0;}
+  .preview-table td{padding:5px 10px;border-bottom:1px solid #f1f5f9;}
+  @media(max-width:480px){.stats-bar{grid-template-columns:repeat(2,1fr);}.form-row{grid-template-columns:1fr;}.info-grid{grid-template-columns:1fr;}.stat-num{font-size:18px;}.inv-table th:nth-child(3),.inv-table td:nth-child(3){display:none;}}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-top">
+    <div class="logo-area">
+      <div class="logo-circle">UN</div>
+      <div><div class="logo-text">UNACIFOR</div><div class="logo-sub">Control de Inventario</div></div>
+    </div>
+    <div class="header-actions">
+      <button class="btn-icon" onclick="openSearch()">🔍</button>
+      <button class="btn-icon" onclick="showTab('reportes')">📄</button>
+    </div>
+  </div>
+  <nav class="nav-tabs">
+    <button class="nav-tab active" onclick="showTab('inicio')" id="tab-inicio">🏠 Inicio</button>
+    <button class="nav-tab" onclick="showTab('nuevo')" id="tab-nuevo">🔄 Préstamo</button>
+    <button class="nav-tab" onclick="showTab('unico')" id="tab-unico">🎁 Entrega Única</button>
+    <button class="nav-tab" onclick="showTab('activos')" id="tab-activos">📦 Activos</button>
+    <button class="nav-tab" onclick="showTab('stock')" id="tab-stock">🗃️ Stock</button>
+    <button class="nav-tab" onclick="showTab('reportes')" id="tab-reportes">📊 Reportes</button>
+  </nav>
+</header>
+
+<div class="toast" id="toast"></div>
+
+<!-- INICIO -->
+<div class="main section active" id="sec-inicio">
+  <div class="stats-bar">
+    <div class="stat-card"><div class="stat-num" id="st-total">0</div><div class="stat-lbl">Préstamos</div></div>
+    <div class="stat-card green"><div class="stat-num" id="st-activos">0</div><div class="stat-lbl">Activos</div></div>
+    <div class="stat-card gold"><div class="stat-num" id="st-hoy">0</div><div class="stat-lbl">Vencen Hoy</div></div>
+    <div class="stat-card red"><div class="stat-num" id="st-bajo">0</div><div class="stat-lbl">Bajo Stock</div></div>
+  </div>
+  <div class="alert-banner" id="alert-stock"><div class="alert-banner-title">⚠️ Artículos con bajo stock (menos de 5 unidades)</div><div id="alert-stock-list"></div></div>
+  <div class="section-hero"><div class="section-hero-text"><h2>Panel General</h2><p>Sistema de Inventario · UNACIFOR</p></div><div class="section-hero-icon">🏫</div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+    <button class="btn btn-primary btn-full" onclick="showTab('nuevo')" style="padding:14px;">🔄 Nuevo Préstamo</button>
+    <button class="btn btn-success btn-full" onclick="showTab('unico')" style="padding:14px;">🎁 Entrega Única</button>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
+    <button class="btn btn-outline btn-full" onclick="showTab('activos')" style="padding:12px;">📦 Ver Activos</button>
+    <button class="btn btn-gold btn-full" onclick="showTab('stock')" style="padding:12px;">🗃️ Gestionar Stock</button>
+  </div>
+  <div style="font-family:var(--font-head);font-size:12px;font-weight:700;margin-bottom:10px;color:var(--grey);text-transform:uppercase;letter-spacing:.5px;">Préstamos Recientes</div>
+  <div id="lista-recientes"><div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">Sin registros aún</div></div></div>
+</div>
+
+<!-- NUEVO PRÉSTAMO -->
+<div class="main section" id="sec-nuevo">
+  <div class="section-hero"><div class="section-hero-text"><h2>Nuevo Préstamo</h2><p>Entrega directa de materiales con firma digital</p></div><div class="section-hero-icon">📝</div></div>
+  <div class="card">
+    <div class="card-body open" style="display:block;">
+      <div class="form-section">
+        <div class="form-title">👤 ¿A quién se entrega?</div>
+        <div class="form-row full"><div class="form-group"><label class="form-label">Nombre de quien recibe *</label><input type="text" class="form-control" id="f-nombre" placeholder="Ej: Juan Pérez"></div></div>
+        <div class="form-row full"><div class="form-group"><label class="form-label">Encargado que entrega *</label>
+          <select class="form-control" id="f-responsable">
+            <option value="">— Seleccionar encargado —</option>
+            <option>Osman Martínez</option><option>Gerson Meza</option><option>Lenar Castro</option><option>Shussan Meza</option><option>Claudia Ulloa</option><option>Msc. Vanessa López</option>
+          </select>
+        </div></div>
+      </div>
+      <div class="form-section">
+        <div class="form-title">📦 Materiales a Entregar (Uso Directo)</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Ubicación / Bodega *</label>
+            <select class="form-control" id="f-ubicacion" onchange="actualizarItemsDisponibles()">
+              <option value="">— Seleccionar —</option>
+              <option>BODEGA 1</option><option>BODEGA 2</option><option>BODEGA 3</option><option>ARBORETO</option><option>CABAÑA 20</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Categoría *</label>
+            <select class="form-control" id="f-categoria" onchange="actualizarItemsDisponibles()">
+              <option value="">— Seleccionar —</option>
+              <option>Implementos Deportivos</option><option>Implementos de Danza</option><option>Implementos de Aseo</option><option>Implementos de Oficina</option><option>Trajes Deportivos</option><option>Extras Deportivos</option><option>Implementos de Graduación</option><option>Ropa de Cuarto</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label class="form-label">Artículos a entregar *</label>
+          <div id="items-container">
+            <div class="item-row">
+              <select class="form-control" style="flex:2;" onchange="actualizarStockInfo(this)"><option value="">— Elige artículo del stock —</option></select>
+              <input type="number" class="form-control" placeholder="Cant." style="flex:0 0 64px;" min="1" value="1" oninput="validarCantidad(this)">
+              <span class="stock-info stock-ok">—</span>
+              <button class="btn btn-outline btn-sm" onclick="removeItem(this)">✕</button>
+            </div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="addItem()" style="margin-top:6px;">+ Agregar artículo</button>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Fecha de Entrega *</label><input type="date" class="form-control" id="f-fecha-prestamo"></div>
+          <div class="form-group"><label class="form-label">Fecha de Devolución *</label><input type="date" class="form-control" id="f-fecha-devolucion"></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-title">✍️ Firma Digital del Receptor</div>
+        <p style="font-size:12px;color:var(--grey);margin-bottom:8px;">La persona que recibe firma con el dedo o lápiz óptico.</p>
+        <div class="sig-wrapper">
+          <canvas id="sig-canvas" class="sig-canvas" width="600" height="140"></canvas>
+          <div class="sig-actions"><span class="sig-label">✏️ Firme aquí</span><button class="btn btn-outline btn-sm" onclick="clearSignature()" style="margin-left:auto;">🗑️ Limpiar</button></div>
+        </div>
+        <div id="sig-status" style="font-size:11px;color:var(--grey);margin-top:4px;padding-left:4px;">Sin firma</div>
+      </div>
+      <button class="btn btn-primary btn-full" onclick="registrarPrestamo()" style="padding:14px;font-size:15px;">✅ Confirmar Entrega</button>
+    </div>
+  </div>
+</div>
+
+<!-- ENTREGA ÚNICA -->
+<div class="main section" id="sec-unico">
+  <div class="section-hero" style="background:linear-gradient(135deg,#065f46,#047857);"><div class="section-hero-text"><h2>Entrega Única</h2><p>Material de uso directo · Sin devolución</p></div><div class="section-hero-icon">🎁</div></div>
+  <div class="card">
+    <div class="card-body open" style="display:block;">
+      <div class="form-section">
+        <div class="form-title">👤 ¿A quién se entrega?</div>
+        <div class="form-row full"><div class="form-group"><label class="form-label">Nombre de quien recibe *</label><input type="text" class="form-control" id="u-nombre" placeholder="Ej: Juan Pérez"></div></div>
+        <div class="form-row full"><div class="form-group"><label class="form-label">Encargado que entrega *</label>
+          <select class="form-control" id="u-responsable">
+            <option value="">— Seleccionar encargado —</option>
+            <option>Osman Martínez</option><option>Gerson Meza</option><option>Lenar Castro</option><option>Shussan Meza</option><option>Claudia Ulloa</option><option>Msc. Vanessa López</option>
+          </select>
+        </div></div>
+      </div>
+      <div class="form-section">
+        <div class="form-title">📦 Materiales (Uso Directo — Sin Devolución)</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Ubicación / Bodega *</label>
+            <select class="form-control" id="u-ubicacion" onchange="actualizarItemsUnico()">
+              <option value="">— Seleccionar —</option>
+              <option>BODEGA 1</option><option>BODEGA 2</option><option>BODEGA 3</option><option>ARBORETO</option><option>CABAÑA 20</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Categoría *</label>
+            <select class="form-control" id="u-categoria" onchange="actualizarItemsUnico()">
+              <option value="">— Seleccionar —</option>
+              <option>Implementos Deportivos</option><option>Implementos de Danza</option><option>Implementos de Aseo</option><option>Implementos de Oficina</option><option>Trajes Deportivos</option><option>Extras Deportivos</option><option>Implementos de Graduación</option><option>Ropa de Cuarto</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-bottom:10px;">
+          <label class="form-label">Artículos a entregar *</label>
+          <div id="u-items-container">
+            <div class="item-row">
+              <select class="form-control" style="flex:2;" onchange="actualizarStockInfoU(this)"><option value="">— Elige artículo del stock —</option></select>
+              <input type="number" class="form-control" placeholder="Cant." style="flex:0 0 64px;" min="1" value="1" oninput="validarCantidadU(this)">
+              <span class="stock-info stock-ok">—</span>
+              <button class="btn btn-outline btn-sm" onclick="removeItemU(this)">✕</button>
+            </div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="addItemU()" style="margin-top:6px;">+ Agregar artículo</button>
+        </div>
+        <div class="form-row full">
+          <div class="form-group"><label class="form-label">Fecha de Entrega *</label><input type="date" class="form-control" id="u-fecha"></div>
+        </div>
+      </div>
+      <div class="form-section">
+        <div class="form-title">✍️ Firma Digital del Receptor</div>
+        <p style="font-size:12px;color:var(--grey);margin-bottom:8px;">La persona que recibe firma con el dedo o lápiz óptico.</p>
+        <div class="sig-wrapper">
+          <canvas id="sig-canvas-u" class="sig-canvas" width="600" height="140"></canvas>
+          <div class="sig-actions"><span class="sig-label">✏️ Firme aquí</span><button class="btn btn-outline btn-sm" onclick="clearSignatureU()" style="margin-left:auto;">🗑️ Limpiar</button></div>
+        </div>
+        <div id="sig-status-u" style="font-size:11px;color:var(--grey);margin-top:4px;padding-left:4px;">Sin firma</div>
+      </div>
+      <button class="btn btn-full" onclick="registrarEntregaUnica()" style="padding:14px;font-size:15px;background:var(--green);color:#fff;border-radius:10px;border:none;font-weight:600;cursor:pointer;">🎁 Confirmar Entrega Única</button>
+    </div>
+  </div>
+</div>
+
+<!-- ACTIVOS -->
+<div class="main section" id="sec-activos">
+  <div class="section-hero"><div class="section-hero-text"><h2>Préstamos Activos</h2><p>Gestiona devoluciones</p></div><div class="section-hero-icon">📦</div></div>
+  <div class="search-bar"><input type="text" class="search-input" id="search-activos" placeholder="Buscar por nombre o artículo..." oninput="renderActivos()"></div>
+  <div class="filter-chips" id="chips-activos">
+    <span class="chip active" data-filter="todos" onclick="setChip(this,'chips-activos')">Todos</span>
+    <span class="chip" data-filter="BODEGA 1" onclick="setChip(this,'chips-activos')">Bodega 1</span>
+    <span class="chip" data-filter="BODEGA 2" onclick="setChip(this,'chips-activos')">Bodega 2</span>
+    <span class="chip" data-filter="BODEGA 3" onclick="setChip(this,'chips-activos')">Bodega 3</span>
+    <span class="chip" data-filter="ARBORETO" onclick="setChip(this,'chips-activos')">Arboreto</span>
+    <span class="chip" data-filter="CABAÑA 20" onclick="setChip(this,'chips-activos')">Cabaña 20</span>
+  </div>
+  <div id="lista-activos"><div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">Sin préstamos activos</div></div></div>
+</div>
+
+<!-- STOCK -->
+<div class="main section" id="sec-stock">
+  <div class="section-hero"><div class="section-hero-text"><h2>Gestión de Stock</h2><p>Importa y administra el inventario por bodega</p></div><div class="section-hero-icon">🗃️</div></div>
+  <div class="alert-banner" id="alert-stock2"><div class="alert-banner-title">⚠️ Bajo Stock</div><div id="alert-stock-list2"></div></div>
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-header" onclick="toggleCard(this)">
+      <div class="card-header-left"><span style="font-size:18px;">📥</span><div><div class="card-title">Importar Inventario</div><div class="card-sub">Excel (.xlsx), CSV o entrada manual</div></div></div>
+      <span style="color:var(--grey);font-size:12px;">▾</span>
+    </div>
+    <div class="card-body open" style="display:block;">
+      <div class="import-zone" id="import-zone" onclick="document.getElementById('file-input').click()" ondragover="dragOver(event)" ondragleave="dragLeave(event)" ondrop="dropFile(event)">
+        <div class="import-zone-icon">📂</div>
+        <div class="import-zone-title">Arrastra tu archivo aquí o toca para seleccionar</div>
+        <div class="import-zone-sub">Acepta .xlsx, .xls, .csv · Columnas requeridas: <strong>Artículo, Cantidad, Categoría, Ubicación</strong></div>
+      </div>
+      <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none;" onchange="importarArchivo(event)">
+      <div id="import-preview" style="display:none;">
+        <div style="font-family:var(--font-head);font-size:12px;font-weight:700;margin:12px 0 6px;color:var(--sky);">VISTA PREVIA</div>
+        <div class="preview-wrap"><table class="preview-table" id="preview-table"></table></div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn btn-success" onclick="confirmarImportacion()">✅ Confirmar importación</button>
+          <button class="btn btn-outline btn-sm" onclick="cancelarImportacion()">Cancelar</button>
+        </div>
+      </div>
+      <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
+        <div class="form-title" style="margin-bottom:10px;">✏️ Agregar artículo manualmente</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Nombre *</label><input type="text" class="form-control" id="inv-nombre" placeholder="Ej: Balón de fútbol"></div>
+          <div class="form-group"><label class="form-label">Cantidad *</label><input type="number" class="form-control" id="inv-cantidad" min="1" placeholder="0"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Categoría *</label>
+            <select class="form-control" id="inv-categoria">
+              <option value="">— Seleccionar —</option>
+              <option>Implementos Deportivos</option><option>Implementos de Danza</option><option>Implementos de Aseo</option><option>Implementos de Oficina</option><option>Trajes Deportivos</option><option>Extras Deportivos</option><option>Implementos de Graduación</option><option>Ropa de Cuarto</option>
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Ubicación *</label>
+            <select class="form-control" id="inv-ubicacion">
+              <option value="">— Seleccionar —</option>
+              <option>BODEGA 1</option><option>BODEGA 2</option><option>BODEGA 3</option><option>ARBORETO</option><option>CABAÑA 20</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="agregarArticuloManual()">+ Agregar al inventario</button>
+      </div>
+    </div>
+  </div>
+  <div class="filter-chips" id="chips-stock">
+    <span class="chip active" data-filter="todos" onclick="setChip(this,'chips-stock')">Todos</span>
+    <span class="chip" data-filter="BODEGA 1" onclick="setChip(this,'chips-stock')">Bodega 1</span>
+    <span class="chip" data-filter="BODEGA 2" onclick="setChip(this,'chips-stock')">Bodega 2</span>
+    <span class="chip" data-filter="BODEGA 3" onclick="setChip(this,'chips-stock')">Bodega 3</span>
+    <span class="chip" data-filter="ARBORETO" onclick="setChip(this,'chips-stock')">Arboreto</span>
+    <span class="chip" data-filter="CABAÑA 20" onclick="setChip(this,'chips-stock')">Cabaña 20</span>
+  </div>
+  <div class="card"><div style="overflow-x:auto;"><table class="inv-table"><thead><tr><th>Artículo</th><th>Ubicación</th><th>Categoría</th><th>Stock</th><th></th></tr></thead><tbody id="stock-tbody"><tr><td colspan="5" style="text-align:center;padding:24px;color:var(--grey);">Sin artículos. Importa o agrega uno arriba.</td></tr></tbody></table></div></div>
+</div>
+
+<!-- REPORTES -->
+<div class="main section" id="sec-reportes">
+  <div class="section-hero"><div class="section-hero-text"><h2>Reportes</h2><p>Historial completo de movimientos</p></div><div class="section-hero-icon">📊</div></div>
+  <div id="lista-reportes"><div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">Sin registros</div></div></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-detalle">
+  <div class="modal"><div class="modal-handle"></div><div id="modal-content"></div><button class="btn btn-outline btn-full" onclick="closeModal()" style="margin-top:12px;">Cerrar</button></div>
+</div>
+
+<button class="fab" onclick="showTab('nuevo')" id="fab-btn">+</button>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, push, update, remove, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDbTSN3Le_tmMFzW65tbF10TAQ9RaBmLWk",
+  authDomain: "inventario-be-2026.firebaseapp.com",
+  databaseURL: "https://inventario-be-2026-default-rtdb.firebaseio.com",
+  projectId: "inventario-be-2026",
+  storageBucket: "inventario-be-2026.firebasestorage.app",
+  messagingSenderId: "1095875919344",
+  appId: "1:1095875919344:web:b24147fb456193a4013135"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const prestamosRef = ref(db, 'prestamos');
+const stockRef = ref(db, 'stock');
+
+let prestamos = [], stockItems = [], importPreviewData = [];
+
+onValue(prestamosRef, snap => {
+  prestamos = [];
+  snap.forEach(c => prestamos.push({ _key: c.key, ...c.val() }));
+  prestamos.sort((a,b) => new Date(b.fechaRegistro) - new Date(a.fechaRegistro));
+  renderInicio();
+  const t = document.querySelector('.nav-tab.active')?.id?.replace('tab-','');
+  if (t==='activos') renderActivos();
+  if (t==='reportes') renderReportes();
+});
+
+let stockFirstLoad = true;
+onValue(stockRef, snap => {
+  stockItems = [];
+  snap.forEach(c => stockItems.push({ _key: c.key, ...c.val() }));
+  stockItems.sort((a,b) => a.nombre.localeCompare(b.nombre));
+  if(stockFirstLoad){ stockFirstLoad=false; cargarInventarioArboreto(); }
+  renderStock(); renderAlertasBajoStock(); actualizarItemsDisponibles();
+});
+
+// Firebase ops
+const savePrestamo = p => push(prestamosRef, p);
+const updatePrestamo = (k,d) => update(ref(db,'prestamos/'+k), d);
+const deletePrestamo = k => remove(ref(db,'prestamos/'+k));
+const saveStockItem = i => push(stockRef, i);
+const updateStockItem = (k,d) => update(ref(db,'stock/'+k), d);
+const deleteStockItem = k => remove(ref(db,'stock/'+k));
+
+// ── INVENTARIO ARBORETO PRECARGADO ──
+const INVENTARIO_ARBORETO = [
+  {nombre:'Mechas de trapeador',cantidad:156},
+  {nombre:'Cepillo para baño',cantidad:11},
+  {nombre:'Jabón líquido para manos',cantidad:28},
+  {nombre:'Basureros',cantidad:97},
+  {nombre:'Limpiavidrios en galón',cantidad:66},
+  {nombre:'Detergente líquido para lavadora',cantidad:152},
+  {nombre:'Recogedores',cantidad:39},
+  {nombre:'Cepillos para pila',cantidad:9},
+  {nombre:'Desinfectante para pisos en bolsa',cantidad:48},
+  {nombre:'Papel higiénico pequeño',cantidad:280},
+  {nombre:'Ace bolsa grande',cantidad:97},
+  {nombre:'Toallas para manos',cantidad:72},
+  {nombre:'Papel higiénico rollo grande',cantidad:48},
+  {nombre:'Escobillas',cantidad:156},
+  {nombre:'Detergente en bolsa',cantidad:12},
+  {nombre:'Tricloro para piscina grande',cantidad:12},
+  {nombre:'Clarificador',cantidad:14},
+  {nombre:'Aceite para pulir muebles en galón',cantidad:22},
+  {nombre:'Regulador de pH en cubeta',cantidad:2},
+  {nombre:'Alguicida',cantidad:9},
+  {nombre:'Cloro industrial',cantidad:60},
+  {nombre:'Desinfectante para pisos',cantidad:157},
+  {nombre:'Rollo de toalla para mano',cantidad:24},
+  {nombre:'Palos de escoba',cantidad:160},
+  {nombre:'Cloro en bote de galón',cantidad:90},
+  {nombre:'Ácido muriático',cantidad:25},
+  {nombre:'Cepillo para inodoro',cantidad:84},
+  {nombre:'Destapadores negros',cantidad:56},
+  {nombre:'Rollos de bolsa para basura pequeñas',cantidad:81},
+  {nombre:'Palo para destapador',cantidad:80},
+  {nombre:'Franelas',cantidad:50},
+  {nombre:'Cepillos para limpiar techos',cantidad:28},
+  {nombre:'Aerosol Lysol',cantidad:41},
+  {nombre:'Cepillo para piso',cantidad:72},
+  {nombre:'Paquetes de bolsas para barril',cantidad:86},
+];
+
+let arboretoCargado = false;
+async function cargarInventarioArboreto(){
+  if(arboretoCargado) return;
+  arboretoCargado = true;
+  const yaExiste = stockItems.some(s => s.ubicacion === 'ARBORETO');
+  if(yaExiste) return; // ya está cargado, no duplicar
+  showToast('📥 Cargando inventario del Arboreto...');
+  for(const item of INVENTARIO_ARBORETO){
+    await saveStockItem({
+      nombre: item.nombre,
+      cantidad: item.cantidad,
+      categoria: 'Implementos de Aseo',
+      ubicacion: 'ARBORETO'
+    });
+  }
+  showToast(`✅ ${INVENTARIO_ARBORETO.length} artículos del Arboreto cargados`);
+}
+
+// TABS
+function showTab(tab) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('sec-'+tab).classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('fab-btn').style.display=(tab==='nuevo'||tab==='stock'||tab==='unico')?'none':'flex';
+  if(tab==='inicio') renderInicio();
+  if(tab==='activos') renderActivos();
+  if(tab==='unico'){ document.getElementById('u-fecha').value=new Date().toISOString().split('T')[0]; actualizarItemsUnico(); }
+  if(tab==='stock') renderStock();
+  if(tab==='reportes') renderReportes();
+  window.scrollTo(0,0);
+}
+
+// SIGNATURE
+const canvas = document.getElementById('sig-canvas');
+const ctx = canvas.getContext('2d');
+let drawing=false, sigData=null;
+
+function resizeCanvas(){
+  const r=window.devicePixelRatio||1, rect=canvas.getBoundingClientRect();
+  canvas.width=rect.width*r; canvas.height=rect.height*r;
+  ctx.scale(r,r); ctx.strokeStyle='#0a2540'; ctx.lineWidth=2.2; ctx.lineCap='round'; ctx.lineJoin='round';
+}
+window.addEventListener('load', resizeCanvas);
+window.addEventListener('resize', resizeCanvas);
+
+function getPos(e){ const rect=canvas.getBoundingClientRect(); if(e.touches)return{x:e.touches[0].clientX-rect.left,y:e.touches[0].clientY-rect.top}; return{x:e.clientX-rect.left,y:e.clientY-rect.top}; }
+canvas.addEventListener('mousedown',e=>{drawing=true;const p=getPos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);});
+canvas.addEventListener('mousemove',e=>{if(!drawing)return;const p=getPos(e);ctx.lineTo(p.x,p.y);ctx.stroke();});
+canvas.addEventListener('mouseup',()=>{drawing=false;checkSig();});
+canvas.addEventListener('touchstart',e=>{e.preventDefault();drawing=true;const p=getPos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);},{passive:false});
+canvas.addEventListener('touchmove',e=>{e.preventDefault();if(!drawing)return;const p=getPos(e);ctx.lineTo(p.x,p.y);ctx.stroke();},{passive:false});
+canvas.addEventListener('touchend',()=>{drawing=false;checkSig();});
+
+function checkSig(){
+  const d=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+  const has=d.some((v,i)=>i%4===3&&v>0);
+  document.getElementById('sig-status').textContent=has?'✅ Firma capturada':'Sin firma';
+  document.getElementById('sig-status').style.color=has?'var(--green)':'var(--grey)';
+  sigData=has?canvas.toDataURL('image/png'):null;
+}
+function clearSignature(){ctx.clearRect(0,0,canvas.width,canvas.height);sigData=null;document.getElementById('sig-status').textContent='Sin firma';document.getElementById('sig-status').style.color='var(--grey)';}
+
+// ── HELPERS SELECTOR ──
+function opcionesStock(disp){
+  if(!disp.length) return '<option value="">— Sin artículos para este filtro —</option>';
+  return '<option value="">— Selecciona un artículo —</option>' +
+    disp.map(s => {
+      const alerta = s.cantidad<=0 ? ' ⛔ SIN STOCK' : s.cantidad<=5 ? ` ⚠️ (quedan ${s.cantidad})` : ` [${s.cantidad} disponibles]`;
+      return `<option value="${s._key}" data-stock="${s.cantidad}"${s.cantidad<=0?' disabled':''}>${s.nombre}${alerta}</option>`;
+    }).join('');
+}
+
+function getDisp(ub, cat){
+  return stockItems.filter(s=>(!ub||s.ubicacion===ub)&&(!cat||s.categoria===cat));
+}
+
+// ── ITEMS PRÉSTAMO ──
+function actualizarItemsDisponibles(){
+  const ub=document.getElementById('f-ubicacion').value;
+  const cat=document.getElementById('f-categoria').value;
+  const disp=getDisp(ub,cat);
+  document.querySelectorAll('#items-container .item-row select').forEach(sel=>{
+    const val=sel.value;
+    sel.innerHTML=opcionesStock(disp);
+    if(val)sel.value=val;
+    actualizarStockInfo(sel);
+  });
+}
+
+function addItem(){
+  const ub=document.getElementById('f-ubicacion').value, cat=document.getElementById('f-categoria').value;
+  const disp=getDisp(ub,cat);
+  const row=document.createElement('div'); row.className='item-row';
+  row.innerHTML=`<select class="form-control" style="flex:2;" onchange="actualizarStockInfo(this)">${opcionesStock(disp)}</select><input type="number" class="form-control" placeholder="Cant." style="flex:0 0 64px;" min="1" value="1" oninput="validarCantidad(this)"><span class="stock-info stock-ok">—</span><button class="btn btn-outline btn-sm" onclick="removeItem(this)">✕</button>`;
+  document.getElementById('items-container').appendChild(row);
+}
+
+function removeItem(btn){ const rows=document.querySelectorAll('#items-container .item-row'); if(rows.length>1)btn.closest('.item-row').remove(); else showToast('Debe haber al menos un artículo'); }
+
+function actualizarStockInfo(sel){
+  const row=sel.closest('.item-row'); if(!row)return;
+  const span=row.querySelector('.stock-info');
+  const opt=sel.options[sel.selectedIndex];
+  const stock=parseInt(opt?.dataset?.stock)||0;
+  if(!sel.value){span.textContent='—';span.className='stock-info stock-ok';return;}
+  span.textContent=`${stock} disp.`;
+  span.className='stock-info '+(stock<=0?'stock-zero':stock<=5?'stock-low':'stock-ok');
+}
+
+function validarCantidad(inp){
+  const row=inp.closest('.item-row'), sel=row.querySelector('select');
+  const stock=parseInt(sel.options[sel.selectedIndex]?.dataset?.stock)||0;
+  if(parseInt(inp.value)>stock){inp.value=stock;showToast(`⚠️ Solo hay ${stock} unidades disponibles`);}
+}
+
+function getItems(){ return Array.from(document.querySelectorAll('#items-container .item-row')).map(row=>{ const sel=row.querySelector('select'),inp=row.querySelector('input[type=number]'); const key=sel.value; const rawText=sel.options[sel.selectedIndex]?.text||''; const nombre=rawText.replace(/\s*[\[⚠️⛔\[].*/,'').trim(); const cantidad=parseInt(inp.value)||1; return key?{_stockKey:key,nombre,cantidad}:null; }).filter(Boolean); }
+
+// REGISTRAR
+async function registrarPrestamo(){
+  const nombre=document.getElementById('f-nombre').value.trim();
+  const responsable=document.getElementById('f-responsable').value;
+  const ubicacion=document.getElementById('f-ubicacion').value;
+  const categoria=document.getElementById('f-categoria').value;
+  const fechaPrestamo=document.getElementById('f-fecha-prestamo').value;
+  const fechaDevolucion=document.getElementById('f-fecha-devolucion').value;
+  const items=getItems();
+  if(!nombre)return showToast('⚠️ Ingresa el nombre de quien recibe');
+  if(!responsable)return showToast('⚠️ Selecciona el encargado');
+  if(!ubicacion)return showToast('⚠️ Selecciona la ubicación');
+  if(!categoria)return showToast('⚠️ Selecciona la categoría');
+  if(!fechaPrestamo)return showToast('⚠️ Ingresa la fecha de entrega');
+  if(!fechaDevolucion)return showToast('⚠️ Ingresa la fecha de devolución');
+  if(!items.length)return showToast('⚠️ Agrega al menos un artículo');
+  if(!sigData)return showToast('✍️ Se requiere la firma');
+  for(const item of items){ const s=stockItems.find(x=>x._key===item._stockKey); if(!s)return showToast(`❌ Artículo no encontrado`); if(s.cantidad<item.cantidad)return showToast(`❌ Stock insuficiente: ${item.nombre} (disponible: ${s.cantidad})`); }
+  try {
+    await savePrestamo({id:'P-'+Date.now(),nombre,responsableInventario:responsable,ubicacion,categoria,fechaPrestamo,fechaDevolucion,items:items.map(i=>({nombre:i.nombre,cantidad:i.cantidad})),firma:sigData,estado:'activo',fechaRegistro:new Date().toISOString()});
+    for(const item of items){ const s=stockItems.find(x=>x._key===item._stockKey); if(s)await updateStockItem(s._key,{cantidad:s.cantidad-item.cantidad}); }
+    showToast('✅ Entrega registrada y stock actualizado');
+    resetForm(); showTab('activos');
+  } catch(e){ showToast('❌ Error: '+e.message); }
+}
+
+function resetForm(){
+  document.getElementById('f-nombre').value=''; document.getElementById('f-responsable').value='';
+  document.getElementById('f-ubicacion').value=''; document.getElementById('f-categoria').value='';
+  document.getElementById('f-fecha-prestamo').value=new Date().toISOString().split('T')[0];
+  document.getElementById('f-fecha-devolucion').value='';
+  document.getElementById('items-container').innerHTML=`<div class="item-row"><select class="form-control" style="flex:2;" onchange="actualizarStockInfo(this)"><option value="">— Elige artículo del stock —</option></select><input type="number" class="form-control" placeholder="Cant." style="flex:0 0 64px;" min="1" value="1" oninput="validarCantidad(this)"><span class="stock-info stock-ok">—</span><button class="btn btn-outline btn-sm" onclick="removeItem(this)">✕</button></div>`;
+  clearSignature(); actualizarItemsDisponibles();
+}
+
+// IMPORTAR
+function importarArchivo(e){ const f=e.target.files[0]; if(f)procesarArchivo(f); e.target.value=''; }
+function dragOver(e){ e.preventDefault(); document.getElementById('import-zone').classList.add('dragover'); }
+function dragLeave(){ document.getElementById('import-zone').classList.remove('dragover'); }
+function dropFile(e){ e.preventDefault(); document.getElementById('import-zone').classList.remove('dragover'); if(e.dataTransfer.files[0])procesarArchivo(e.dataTransfer.files[0]); }
+
+function procesarArchivo(file){
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=new Uint8Array(ev.target.result);
+      const wb=XLSX.read(data,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+      if(!rows.length)return showToast('❌ Archivo vacío');
+      importPreviewData=rows.map(row=>{
+        const l={}; Object.keys(row).forEach(k=>l[k.toLowerCase().trim()]=row[k]);
+        return{ nombre:String(l['artículo']||l['articulo']||l['nombre']||l['item']||'').trim(), cantidad:parseInt(l['cantidad']||l['cant']||l['qty']||0)||0, categoria:String(l['categoría']||l['categoria']||l['category']||'Implementos Deportivos').trim(), ubicacion:String(l['ubicación']||l['ubicacion']||l['bodega']||l['location']||'BODEGA 1').trim().toUpperCase() };
+      }).filter(r=>r.nombre&&r.cantidad>0);
+      if(!importPreviewData.length)return showToast('❌ No se encontraron filas válidas');
+      const tbl=document.getElementById('preview-table');
+      tbl.innerHTML=`<thead><tr><th>Artículo</th><th>Cantidad</th><th>Categoría</th><th>Ubicación</th></tr></thead><tbody>${importPreviewData.map(r=>`<tr><td>${r.nombre}</td><td>${r.cantidad}</td><td>${r.categoria}</td><td>${r.ubicacion}</td></tr>`).join('')}</tbody>`;
+      document.getElementById('import-preview').style.display='block';
+      showToast(`📋 ${importPreviewData.length} artículos listos para importar`);
+    }catch(err){showToast('❌ Error leyendo archivo: '+err.message);}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+async function confirmarImportacion(){
+  if(!importPreviewData.length)return;
+  try{
+    for(const item of importPreviewData){
+      const ex=stockItems.find(s=>s.nombre.toLowerCase()===item.nombre.toLowerCase()&&s.ubicacion===item.ubicacion);
+      if(ex)await updateStockItem(ex._key,{cantidad:ex.cantidad+item.cantidad});
+      else await saveStockItem(item);
+    }
+    showToast(`✅ ${importPreviewData.length} artículos importados`); cancelarImportacion();
+  }catch(e){showToast('❌ Error: '+e.message);}
+}
+
+function cancelarImportacion(){ importPreviewData=[]; document.getElementById('import-preview').style.display='none'; }
+
+async function agregarArticuloManual(){
+  const nombre=document.getElementById('inv-nombre').value.trim();
+  const cantidad=parseInt(document.getElementById('inv-cantidad').value)||0;
+  const categoria=document.getElementById('inv-categoria').value;
+  const ubicacion=document.getElementById('inv-ubicacion').value;
+  if(!nombre)return showToast('⚠️ Ingresa el nombre');
+  if(cantidad<=0)return showToast('⚠️ Ingresa cantidad válida');
+  if(!categoria)return showToast('⚠️ Selecciona categoría');
+  if(!ubicacion)return showToast('⚠️ Selecciona ubicación');
+  const ex=stockItems.find(s=>s.nombre.toLowerCase()===nombre.toLowerCase()&&s.ubicacion===ubicacion);
+  try{
+    if(ex){await updateStockItem(ex._key,{cantidad:ex.cantidad+cantidad});showToast(`✅ Sumadas ${cantidad} unidades a "${nombre}"`);}
+    else{await saveStockItem({nombre,cantidad,categoria,ubicacion});showToast(`✅ "${nombre}" agregado`);}
+    ['inv-nombre','inv-cantidad'].forEach(id=>document.getElementById(id).value='');
+    ['inv-categoria','inv-ubicacion'].forEach(id=>document.getElementById(id).value='');
+  }catch(e){showToast('❌ Error: '+e.message);}
+}
+
+// RENDER STOCK
+function renderStock(){
+  const chip=document.querySelector('#chips-stock .chip.active')?.dataset.filter||'todos';
+  const lista=chip==='todos'?stockItems:stockItems.filter(s=>s.ubicacion===chip);
+  const tbody=document.getElementById('stock-tbody');
+  if(!lista.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--grey);">Sin artículos. Importa o agrega uno arriba.</td></tr>';return;}
+  tbody.innerHTML=lista.map(s=>{
+    const pct=Math.min(100,(s.cantidad/20)*100);
+    const cls=s.cantidad<=0?'zero':s.cantidad<=5?'low':'ok';
+    const badge=s.cantidad<=0?`<span class="tag tag-red">Sin stock</span>`:s.cantidad<=5?`<span class="tag tag-orange">⚠️ ${s.cantidad}</span>`:`<span class="tag tag-green">${s.cantidad}</span>`;
+    return`<tr><td><strong>${s.nombre}</strong></td><td><span class="loc-tag" style="font-size:10px;">${locIcon(s.ubicacion)} ${s.ubicacion}</span></td><td style="font-size:12px;color:var(--grey);">${s.categoria}</td><td>${badge}<div class="stock-bar"><div class="stock-bar-fill ${cls}" style="width:${pct}%"></div></div></td><td><div style="display:flex;gap:4px;"><button class="btn btn-outline btn-sm" onclick="editarStock('${s._key}')" style="padding:4px 8px;font-size:11px;">✏️</button><button class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:none;padding:4px 8px;font-size:11px;" onclick="eliminarStock('${s._key}')">🗑️</button></div></td></tr>`;
+  }).join('');
+}
+
+function editarStock(key){
+  const s=stockItems.find(x=>x._key===key); if(!s)return;
+  const n=prompt(`Cantidad actual de "${s.nombre}": ${s.cantidad}\nNueva cantidad:`);
+  if(n===null)return;
+  const v=parseInt(n); if(isNaN(v)||v<0)return showToast('❌ Cantidad inválida');
+  updateStockItem(key,{cantidad:v}).then(()=>showToast('✅ Stock actualizado')).catch(()=>showToast('❌ Error'));
+}
+
+async function eliminarStock(key){ if(!confirm('¿Eliminar este artículo?'))return; try{await deleteStockItem(key);showToast('🗑️ Eliminado');}catch(e){showToast('❌ Error');} }
+
+// ALERTAS
+function renderAlertasBajoStock(){
+  const bajos=stockItems.filter(s=>s.cantidad<=5);
+  document.getElementById('st-bajo').textContent=bajos.length;
+  ['alert-stock','alert-stock2'].forEach((id,i)=>{
+    const el=document.getElementById(id), list=document.getElementById(i===0?'alert-stock-list':'alert-stock-list2');
+    if(bajos.length){el.classList.add('show');list.innerHTML=bajos.map(s=>`<div class="alert-item">${locIcon(s.ubicacion)} <strong>${s.nombre}</strong> — ${s.ubicacion} · ${s.cantidad===0?'<strong>SIN STOCK</strong>':`${s.cantidad} unid. restantes`}</div>`).join('');}
+    else el.classList.remove('show');
+  });
+}
+
+// RENDER INICIO
+function renderInicio(){
+  const hoy=new Date();hoy.setHours(0,0,0,0);
+  const act=prestamos.filter(p=>p.estado==='activo');
+  const vHoyVenc=act.filter(p=>{const d=new Date(p.fechaDevolucion+'T00:00:00');return d<=hoy;});
+  document.getElementById('st-total').textContent=prestamos.length;
+  document.getElementById('st-activos').textContent=act.length;
+  document.getElementById('st-hoy').textContent=vHoyVenc.length;
+  renderAlertasBajoStock();
+  const cont=document.getElementById('lista-recientes');
+  const r=prestamos.slice(0,5);
+  cont.innerHTML=r.length?r.map(p=>cardHTML(p)).join(''):`<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">Sin registros aún</div></div>`;
+}
+
+// RENDER ACTIVOS
+function renderActivos(){
+  const q=document.getElementById('search-activos').value.toLowerCase();
+  const chip=document.querySelector('#chips-activos .chip.active')?.dataset.filter||'todos';
+  let lista=prestamos.filter(p=>p.estado==='activo');
+  if(chip!=='todos')lista=lista.filter(p=>p.ubicacion===chip);
+  if(q)lista=lista.filter(p=>p.nombre.toLowerCase().includes(q)||p.items?.some(i=>i.nombre.toLowerCase().includes(q)));
+  document.getElementById('lista-activos').innerHTML=lista.length?lista.map(p=>cardHTML(p)).join(''):`<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">Sin préstamos activos</div></div>`;
+}
+
+// RENDER REPORTES
+function renderReportes(){
+  const cont=document.getElementById('lista-reportes');
+  if(!prestamos.length){cont.innerHTML=`<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">Sin registros</div></div>`;return;}
+  cont.innerHTML=prestamos.map(p=>`<div class="receipt"><div class="receipt-header"><div><div style="font-family:var(--font-head);font-size:15px;font-weight:800;">${p.nombre}</div><div class="receipt-id">${p.id} · ${fmtDate(p.fechaRegistro?.split('T')[0])}</div></div>${estadoBadge(p)}</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;"><span class="loc-tag">${locIcon(p.ubicacion)} ${p.ubicacion}</span><span class="tag tag-sky">${p.categoria}</span></div><hr class="divider">${(p.items||[]).map(i=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;border-bottom:1px solid #f1f5f9;"><span>${i.nombre}</span><strong>×${i.cantidad}</strong></div>`).join('')}<hr class="divider"><div style="display:flex;justify-content:space-between;font-size:12px;color:var(--grey);"><span>📅 ${fmtDate(p.fechaPrestamo)}</span><span>🔄 ${fmtDate(p.fechaDevolucion)}</span></div><div style="margin-top:10px;display:flex;gap:8px;"><button class="btn btn-outline btn-sm" onclick="verDetalle('${p.id}')">👁️ Ver detalle</button>${p.estado==='activo'?`<button class="btn btn-success btn-sm" onclick="marcarDevuelto('${p.id}')">✅ Marcar devuelto</button>`:''}</div></div>`).join('');
+}
+
+// CARD HTML
+function cardHTML(p){
+  return`<div class="card"><div class="card-header" onclick="toggleCard(this)"><div class="card-header-left"><div class="card-badge ${badgeClass(p)}"></div><div><div class="card-title">${p.nombre}</div><div class="card-sub">${locIcon(p.ubicacion)} ${p.ubicacion} · ${p.categoria}</div></div></div><div style="display:flex;align-items:center;gap:6px;">${estadoBadge(p)}<span style="color:var(--grey);font-size:12px;">▾</span></div></div><div class="card-body"><div class="info-grid"><div class="info-item"><div class="info-label">Entregado a</div><div class="info-value">${p.nombre}</div></div><div class="info-item"><div class="info-label">Encargado</div><div class="info-value">${p.responsableInventario||'—'}</div></div><div class="info-item"><div class="info-label">Fecha Entrega</div><div class="info-value">${fmtDate(p.fechaPrestamo)}</div></div><div class="info-item"><div class="info-label">Devolver</div><div class="info-value">${fmtDate(p.fechaDevolucion)}</div></div></div><div style="margin:10px 0;"><div class="info-label" style="margin-bottom:6px;">Artículos</div>${(p.items||[]).map(i=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f1f5f9;font-size:13px;"><span>${i.nombre}</span><strong>×${i.cantidad}</strong></div>`).join('')}</div>${p.firma?`<div style="margin-top:10px;"><div class="info-label" style="margin-bottom:4px;">Firma Digital</div><img src="${p.firma}" style="border:1px solid var(--border);border-radius:8px;max-height:80px;background:#fff;" alt="firma"></div>`:''}<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;"><button class="btn btn-outline btn-sm" onclick="verDetalle('${p.id}')">👁️ Detalle</button>${p.estado==='activo'?`<button class="btn btn-success btn-sm" onclick="marcarDevuelto('${p.id}')">✅ Devuelto</button>`:''}<button class="btn btn-sm" style="background:var(--red-light);color:var(--red);border:none;" onclick="eliminar('${p.id}')">🗑️</button></div></div></div>`;
+}
+
+function toggleCard(h){const b=h.nextElementSibling;b.classList.toggle('open');const a=h.querySelector('span:last-child');if(a)a.textContent=b.classList.contains('open')?'▴':'▾';}
+
+// ACCIONES
+async function marcarDevuelto(id){const p=prestamos.find(x=>x.id===id);if(!p||!p._key)return;try{await updatePrestamo(p._key,{estado:'devuelto',fechaDevuelto:new Date().toISOString().split('T')[0]});showToast('✅ Marcado como devuelto');closeModal();}catch(e){showToast('❌ Error');}}
+async function eliminar(id){if(!confirm('¿Eliminar este registro?'))return;const p=prestamos.find(x=>x.id===id);if(!p||!p._key)return;try{await deletePrestamo(p._key);showToast('🗑️ Eliminado');}catch(e){showToast('❌ Error');}}
+
+function verDetalle(id){
+  const p=prestamos.find(x=>x.id===id);if(!p)return;
+  document.getElementById('modal-content').innerHTML=`<div class="modal-title">📋 Comprobante de Entrega</div><div style="background:var(--sky-light);border-radius:10px;padding:12px;margin-bottom:14px;"><div style="font-size:10px;color:var(--sky);font-weight:700;text-transform:uppercase;">ID</div><div style="font-family:var(--font-head);font-size:16px;font-weight:800;">${p.id}</div></div><div class="info-grid" style="margin-bottom:12px;"><div class="info-item"><div class="info-label">Entregado a</div><div class="info-value">${p.nombre}</div></div><div class="info-item"><div class="info-label">Encargado</div><div class="info-value">${p.responsableInventario||'—'}</div></div><div class="info-item"><div class="info-label">Ubicación</div><div class="info-value">${locIcon(p.ubicacion)} ${p.ubicacion}</div></div><div class="info-item"><div class="info-label">Categoría</div><div class="info-value">${p.categoria}</div></div><div class="info-item"><div class="info-label">Fecha Entrega</div><div class="info-value">${fmtDate(p.fechaPrestamo)}</div></div><div class="info-item"><div class="info-label">Devolución</div><div class="info-value">${fmtDate(p.fechaDevolucion)}</div></div><div class="info-item"><div class="info-label">Estado</div><div class="info-value">${estadoBadge(p)}</div></div></div><div style="margin-bottom:12px;"><div class="info-label" style="margin-bottom:6px;">Artículos Entregados</div>${(p.items||[]).map(i=>`<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:13px;"><span>${i.nombre}</span><strong>×${i.cantidad}</strong></div>`).join('')}</div>${p.firma?`<div style="margin-bottom:12px;"><div class="info-label" style="margin-bottom:6px;">✍️ Firma Digital</div><div style="border:1.5px solid var(--border);border-radius:10px;overflow:hidden;background:#fff;text-align:center;padding:8px;"><img src="${p.firma}" style="max-height:100px;max-width:100%;" alt="Firma"></div><div style="font-size:11px;color:var(--green);margin-top:4px;font-weight:600;">✅ Firma verificada</div></div>`:''} ${p.estado==='activo'?`<button class="btn btn-success btn-full" onclick="marcarDevuelto('${p.id}')">✅ Marcar como devuelto</button>`:''}`;
+  document.getElementById('modal-detalle').classList.add('open');
+}
+
+function closeModal(){document.getElementById('modal-detalle').classList.remove('open');}
+document.getElementById('modal-detalle').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+// HELPERS
+function estadoBadge(p){
+  if(p.tipo==='entrega_unica')return'<span class="tag tag-green">🎁 Entrega Única</span>';
+  const hoy=new Date();hoy.setHours(0,0,0,0);const dev=new Date(p.fechaDevolucion+'T00:00:00');
+  if(p.estado==='devuelto')return'<span class="tag tag-green">✅ Devuelto</span>';
+  if(dev<hoy)return'<span class="tag tag-red">⚠️ Vencido</span>';
+  if(dev.getTime()===hoy.getTime())return'<span class="tag tag-gold">🔔 Vence Hoy</span>';
+  return'<span class="tag tag-sky">📦 Activo</span>';
+}
+function badgeClass(p){if(p.estado==='devuelto')return'badge-pending';const hoy=new Date();hoy.setHours(0,0,0,0);const dev=new Date(p.fechaDevolucion+'T00:00:00');if(dev<hoy)return'badge-overdue';return'badge-active';}
+function fmtDate(d){if(!d)return'—';const[y,m,dd]=d.split('-');return`${dd}/${m}/${y}`;}
+function locIcon(l){return{'BODEGA 1':'🏬','BODEGA 2':'🏬','BODEGA 3':'🏬','ARBORETO':'🌳','CABAÑA 20':'🏕️'}[l]||'📍';}
+function setChip(el,gid){document.querySelectorAll('#'+gid+' .chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');if(gid==='chips-activos')renderActivos();if(gid==='chips-stock')renderStock();}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
+function openSearch(){showTab('activos');setTimeout(()=>document.getElementById('search-activos')?.focus(),300);}
+
+// ── FIRMA ENTREGA ÚNICA ──
+const canvasU = document.getElementById('sig-canvas-u');
+const ctxU = canvasU.getContext('2d');
+let drawingU=false, sigDataU=null;
+
+function resizeCanvasU(){
+  const r=window.devicePixelRatio||1, rect=canvasU.getBoundingClientRect();
+  canvasU.width=rect.width*r; canvasU.height=rect.height*r;
+  ctxU.scale(r,r); ctxU.strokeStyle='#0a2540'; ctxU.lineWidth=2.2; ctxU.lineCap='round'; ctxU.lineJoin='round';
+}
+window.addEventListener('load', resizeCanvasU);
+window.addEventListener('resize', resizeCanvasU);
+
+function getPosU(e){ const rect=canvasU.getBoundingClientRect(); if(e.touches)return{x:e.touches[0].clientX-rect.left,y:e.touches[0].clientY-rect.top}; return{x:e.clientX-rect.left,y:e.clientY-rect.top}; }
+canvasU.addEventListener('mousedown',e=>{drawingU=true;const p=getPosU(e);ctxU.beginPath();ctxU.moveTo(p.x,p.y);});
+canvasU.addEventListener('mousemove',e=>{if(!drawingU)return;const p=getPosU(e);ctxU.lineTo(p.x,p.y);ctxU.stroke();});
+canvasU.addEventListener('mouseup',()=>{drawingU=false;checkSigU();});
+canvasU.addEventListener('touchstart',e=>{e.preventDefault();drawingU=true;const p=getPosU(e);ctxU.beginPath();ctxU.moveTo(p.x,p.y);},{passive:false});
+canvasU.addEventListener('touchmove',e=>{e.preventDefault();if(!drawingU)return;const p=getPosU(e);ctxU.lineTo(p.x,p.y);ctxU.stroke();},{passive:false});
+canvasU.addEventListener('touchend',()=>{drawingU=false;checkSigU();});
+
+function checkSigU(){
+  const d=ctxU.getImageData(0,0,canvasU.width,canvasU.height).data;
+  const has=d.some((v,i)=>i%4===3&&v>0);
+  document.getElementById('sig-status-u').textContent=has?'✅ Firma capturada':'Sin firma';
+  document.getElementById('sig-status-u').style.color=has?'var(--green)':'var(--grey)';
+  sigDataU=has?canvasU.toDataURL('image/png'):null;
+}
+function clearSignatureU(){ctxU.clearRect(0,0,canvasU.width,canvasU.height);sigDataU=null;document.getElementById('sig-status-u').textContent='Sin firma';document.getElementById('sig-status-u').style.color='var(--grey)';}
+
+// ── ITEMS ENTREGA ÚNICA ──
+function actualizarItemsUnico(){
+  const ub=document.getElementById('u-ubicacion').value, cat=document.getElementById('u-categoria').value;
+  const disp=getDisp(ub,cat);
+  document.querySelectorAll('#u-items-container .item-row select').forEach(sel=>{
+    const val=sel.value;
+    sel.innerHTML=opcionesStock(disp);
+    if(val)sel.value=val;
+    actualizarStockInfoU(sel);
+  });
+}
+
+function addItemU(){
+  const ub=document.getElementById('u-ubicacion').value, cat=document.getElementById('u-categoria').value;
+  const disp=getDisp(ub,cat);
+  const row=document.createElement('div'); row.className='item-row';
+  row.innerHTML=`<select class="form-control" style="flex:2;" onchange="actualizarStockInfoU(this)">${opcionesStock(disp)}</select><input type="number" class="form-control" placeholder="Cant." style="flex:0 0 64px;" min="1" value="1" oninput="validarCantidadU(this)"><span class="stock-info stock-ok">—</span><button class="btn btn-outline btn-sm" onclick="removeItemU(this)">✕</button>`;
+  document.getElementById('u-items-container').appendChild(row);
+}
+
+function removeItemU(btn){ const rows=document.querySelectorAll('#u-items-container .item-row'); if(rows.length>1)btn.closest('.item-row').remove(); else showToast('Debe haber al menos un artículo'); }
+
+function actualizarStockInfoU(sel){
+  const row=sel.closest('.item-row'); if(!row)return;
+  const span=row.querySelector('.stock-info'), opt=sel.options[sel.selectedIndex];
+  const stock=parseInt(opt?.dataset?.stock)||0;
+  if(!sel.value){span.textContent='—';span.className='stock-info stock-ok';return;}
+  span.textContent=`${stock} disp.`;
+  span.className='stock-info '+(stock<=0?'stock-zero':stock<=5?'stock-low':'stock-ok');
+}
+
+function validarCantidadU(inp){
+  const row=inp.closest('.item-row'), sel=row.querySelector('select');
+  const stock=parseInt(sel.options[sel.selectedIndex]?.dataset?.stock)||0;
+  if(parseInt(inp.value)>stock){inp.value=stock;showToast(`⚠️ Solo hay ${stock} unidades disponibles`);}
+}
+
+function getItemsU(){ return Array.from(document.querySelectorAll('#u-items-container .item-row')).map(row=>{ const sel=row.querySelector('select'),inp=row.querySelector('input[type=number]'); const key=sel.value; const rawText=sel.options[sel.selectedIndex]?.text||''; const nombre=rawText.replace(/\s*[\[⚠️⛔\[].*/,'').trim(); const cantidad=parseInt(inp.value)||1; return key?{_stockKey:key,nombre,cantidad}:null; }).filter(Boolean); }
+
+// ── REGISTRAR ENTREGA ÚNICA ──
+async function registrarEntregaUnica(){
+  const nombre=document.getElementById('u-nombre').value.trim();
+  const responsable=document.getElementById('u-responsable').value;
+  const ubicacion=document.getElementById('u-ubicacion').value;
+  const categoria=document.getElementById('u-categoria').value;
+  const fecha=document.getElementById('u-fecha').value;
+  const items=getItemsU();
+  if(!nombre)return showToast('⚠️ Ingresa el nombre de quien recibe');
+  if(!responsable)return showToast('⚠️ Selecciona el encargado');
+  if(!ubicacion)return showToast('⚠️ Selecciona la ubicación');
+  if(!categoria)return showToast('⚠️ Selecciona la categoría');
+  if(!fecha)return showToast('⚠️ Ingresa la fecha de entrega');
+  if(!items.length)return showToast('⚠️ Agrega al menos un artículo');
+  if(!sigDataU)return showToast('✍️ Se requiere la firma');
+  for(const item of items){ const s=stockItems.find(x=>x._key===item._stockKey); if(!s)return showToast(`❌ Artículo no encontrado`); if(s.cantidad<item.cantidad)return showToast(`❌ Stock insuficiente: ${item.nombre} (disponible: ${s.cantidad})`); }
+  try{
+    await savePrestamo({id:'EU-'+Date.now(),nombre,responsableInventario:responsable,ubicacion,categoria,fechaPrestamo:fecha,fechaDevolucion:null,tipo:'entrega_unica',items:items.map(i=>({nombre:i.nombre,cantidad:i.cantidad})),firma:sigDataU,estado:'entregado',fechaRegistro:new Date().toISOString()});
+    for(const item of items){ const s=stockItems.find(x=>x._key===item._stockKey); if(s)await updateStockItem(s._key,{cantidad:s.cantidad-item.cantidad}); }
+    showToast('🎁 Entrega única registrada y stock actualizado');
+    resetFormUnico(); showTab('reportes');
+  }catch(e){showToast('❌ Error: '+e.message);}
+}
+
+function resetFormUnico(){
+  document.getElementById('u-nombre').value=''; document.getElementById('u-responsable').value='';
+  document.getElementById('u-ubicacion').value=''; document.getElementById('u-categoria').value='';
+  document.getElementById('u-fecha').value=new Date().toISOString().split('T')[0];
+  document.getElementById('u-items-container').innerHTML=`<div class="item-row"><select class="form-control" style="flex:2;" onchange="actualizarStockInfoU(this)"><option value="">— Elige artículo del stock —</option></select><input type="number" class="form-control" placeholder="Cant." style="flex:0 0 64px;" min="1" value="1" oninput="validarCantidadU(this)"><span class="stock-info stock-ok">—</span><button class="btn btn-outline btn-sm" onclick="removeItemU(this)">✕</button></div>`;
+  clearSignatureU(); actualizarItemsUnico();
+}
+
+// INIT
+document.getElementById('f-fecha-prestamo').value=new Date().toISOString().split('T')[0];
+document.getElementById('u-fecha').value=new Date().toISOString().split('T')[0];
+showToast('🔄 Conectando con Firebase...');
+
+// Global exports
+Object.assign(window,{showTab,registrarPrestamo,addItem,removeItem,actualizarStockInfo,validarCantidad,actualizarItemsDisponibles,marcarDevuelto,eliminar,verDetalle,closeModal,setChip,clearSignature,toggleCard,openSearch,importarArchivo,dragOver,dragLeave,dropFile,confirmarImportacion,cancelarImportacion,agregarArticuloManual,editarStock,eliminarStock,registrarEntregaUnica,addItemU,removeItemU,actualizarStockInfoU,validarCantidadU,actualizarItemsUnico,clearSignatureU,cargarInventarioArboreto});
+</script>
+</body>
+</html>
